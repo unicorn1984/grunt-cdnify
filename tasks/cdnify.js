@@ -98,7 +98,7 @@ module.exports = function (grunt) {
         return grunt.log.warn("Source file \"" + (path.resolve(srcFile)) + "\" not found.");
       }
       else {
-        if (/\.css$/.test(srcFile)) {
+        if (/.css$/.test(srcFile)) {
           // It's a CSS file.
           var oldCSS = grunt.file.read(srcFile),
               newCSS = options.css ?
@@ -110,8 +110,12 @@ module.exports = function (grunt) {
         }
         else {
           // It's an HTML file.
-          var oldHTML = grunt.file.read(srcFile),
-              soup = new Soup(oldHTML);
+          var oldHTML = grunt.file.read(srcFile);
+          //处理ie条件判断被忽略 pzf 2015-08
+          oldHTML = oldHTML.replace(/(<!--\[if[\d\w\s]*\])(>)/gi,"$1-->");
+          oldHTML = oldHTML.replace(/(<!)(\[endif\]-->)/gi," $1--$2");
+
+          var soup = new Soup(oldHTML);
 
           for (var search in options.html) {
             var attr = options.html[search];
@@ -123,9 +127,12 @@ module.exports = function (grunt) {
             soup.setInnerHTML('style', function (css) {
               return rewriteCSSURLs(css, rewriteURL);
             });
-
+          var newHtml = soup.toString();
+          //处理ie条件判断被忽略 pzf 2015-08
+          newHtml = newHtml.replace(/(<!--\[if[\d\w\s]*\])(-->)/gi,"$1>");
+          newHtml = newHtml.replace(/(<!--)(\[endif\]-->)/gi,"<!$2");
           // Write it to disk
-          grunt.file.write(destFile, soup.toString());
+          grunt.file.write(destFile, newHtml);
           grunt.log.ok("Wrote HTML file: \"" + destFile + "\"");
         }
       }
